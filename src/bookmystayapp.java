@@ -1,62 +1,117 @@
 
 import java.util.*;
 
-        // Reservation class (represents booking request)
-        class Reservation {
-            String customerName;
-            String roomType;
+            // Reservation (from UC5)
+            class Reservation {
+                String customerName;
+                String roomType;
 
-            public Reservation(String customerName, String roomType) {
-                this.customerName = customerName;
-                this.roomType = roomType;
-            }
-
-            @Override
-            public String toString() {
-                return customerName + " -> " + roomType;
-            }
-        }
-
-        // Booking Request Queue
-        class BookingQueue {
-            private Queue<Reservation> queue;
-
-            public BookingQueue() {
-                queue = new LinkedList<>();
-            }
-
-            // Add request
-            public void addRequest(Reservation r) {
-                queue.add(r);
-                System.out.println("Request added: " + r);
-            }
-
-            // Display queue
-            public void displayQueue() {
-                System.out.println("\nCurrent Booking Queue:");
-                for (Reservation r : queue) {
-                    System.out.println(r);
+                public Reservation(String customerName, String roomType) {
+                    this.customerName = customerName;
+                    this.roomType = roomType;
                 }
             }
-        }
 
-        // Main Class
-        public class bookmystayapp {
+            // Inventory Service
+            class InventoryService {
+                private Map<String, Integer> inventory;
 
-            public static void main(String[] args) {
+                public InventoryService() {
+                    inventory = new HashMap<>();
+                    inventory.put("Single Room", 2);
+                    inventory.put("Double Room", 1);
+                    inventory.put("Suite Room", 1);
+                }
 
-                System.out.println("===== Book My Stay App v5.0 =====");
+                public int getAvailability(String type) {
+                    return inventory.getOrDefault(type, 0);
+                }
 
-                BookingQueue bookingQueue = new BookingQueue();
-
-                // Add booking requests
-                bookingQueue.addRequest(new Reservation("Alice", "Single Room"));
-                bookingQueue.addRequest(new Reservation("Bob", "Double Room"));
-                bookingQueue.addRequest(new Reservation("Charlie", "Suite Room"));
-
-                // Display queue (FIFO order)
-                bookingQueue.displayQueue();
-
-                System.out.println("=================================");
+                public void reduceAvailability(String type) {
+                    inventory.put(type, inventory.get(type) - 1);
+                }
             }
-        }
+
+            // Booking Service
+            class BookingService {
+
+                private Queue<Reservation> queue;
+                private InventoryService inventory;
+
+                // Track allocated rooms (no duplicates)
+                private Set<String> allocatedRoomIds;
+
+                // Map room type → allocated IDs
+                private Map<String, Set<String>> allocationMap;
+
+                public BookingService(Queue<Reservation> queue, InventoryService inventory) {
+                    this.queue = queue;
+                    this.inventory = inventory;
+                    this.allocatedRoomIds = new HashSet<>();
+                    this.allocationMap = new HashMap<>();
+                }
+
+                // Generate unique room ID
+                private String generateRoomId(String type, int count) {
+                    return type.substring(0, 2).toUpperCase() + "-" + count;
+                }
+
+                // Process booking
+                public void processBookings() {
+
+                    while (!queue.isEmpty()) {
+
+                        Reservation r = queue.poll(); // FIFO
+                        String type = r.roomType;
+
+                        if (inventory.getAvailability(type) > 0) {
+
+                            int count = allocationMap.getOrDefault(type, new HashSet<>()).size() + 1;
+                            String roomId = generateRoomId(type, count);
+
+                            // Ensure uniqueness
+                            if (!allocatedRoomIds.contains(roomId)) {
+
+                                allocatedRoomIds.add(roomId);
+
+                                allocationMap.putIfAbsent(type, new HashSet<>());
+                                allocationMap.get(type).add(roomId);
+
+                                inventory.reduceAvailability(type);
+
+                                System.out.println("Booking Confirmed: " + r.customerName +
+                                        " | Room Type: " + type +
+                                        " | Room ID: " + roomId);
+                            }
+
+                        } else {
+                            System.out.println("Booking Failed (No Availability): " +
+                                    r.customerName + " | " + type);
+                        }
+                    }
+                }
+            }
+
+            // Main Class
+            public class bookmystayapp {
+
+                public static void main(String[] args) {
+
+                    System.out.println("===== Book My Stay App v6.0 =====");
+
+                    // Booking Queue
+                    Queue<Reservation> queue = new LinkedList<>();
+                    queue.add(new Reservation("Alice", "Single Room"));
+                    queue.add(new Reservation("Bob", "Single Room"));
+                    queue.add(new Reservation("Charlie", "Single Room")); // exceeds
+
+                    // Services
+                    InventoryService inventory = new InventoryService();
+                    BookingService bookingService = new BookingService(queue, inventory);
+
+                    // Process bookings
+                    bookingService.processBookings();
+
+                    System.out.println("=================================");
+                }
+            }
