@@ -1,41 +1,64 @@
-import java.util.HashMap;
-import java.util.Map;
 
-// Inventory Class
-class RoomInventory {
-
-    private HashMap<String, Integer> inventory;
-
-    // Constructor
-    public RoomInventory() {
-        inventory = new HashMap<>();
-
-        // Initialize room availability
-        inventory.put("Single Room", 5);
-        inventory.put("Double Room", 3);
-        inventory.put("Suite Room", 2);
+import java.util.*;
+class Service {
+    String name;
+    double cost;
+    public Service(String name, double cost) {
+        this.name = name;
+        this.cost = cost;
     }
 
-    // Get availability
-    public int getAvailability(String roomType) {
-        return inventory.getOrDefault(roomType, 0);
+    @Override
+    public String toString() {
+        return name + " (₹" + cost + ")";
+    }
+}
+
+// Add-On Service Manager
+class AddOnServiceManager {
+
+    // Map: Reservation ID -> List of Services
+    private Map<String, List<Service>> serviceMap;
+
+    public AddOnServiceManager() {
+        serviceMap = new HashMap<>();
     }
 
-    // Update availability
-    public void updateAvailability(String roomType, int count) {
-        if (inventory.containsKey(roomType)) {
-            inventory.put(roomType, count);
-        } else {
-            System.out.println("Room type not found!");
+    // Add service to reservation
+    public void addService(String reservationId, Service service) {
+        serviceMap.putIfAbsent(reservationId, new ArrayList<>());
+        serviceMap.get(reservationId).add(service);
+
+        System.out.println("Added service " + service.name +
+                " to Reservation " + reservationId);
+    }
+
+    // Display services for a reservation
+    public void displayServices(String reservationId) {
+        List<Service> services = serviceMap.get(reservationId);
+
+        if (services == null || services.isEmpty()) {
+            System.out.println("No services for Reservation " + reservationId);
+            return;
+        }
+
+        System.out.println("\nServices for Reservation " + reservationId + ":");
+        for (Service s : services) {
+            System.out.println(s);
         }
     }
 
-    // Display all inventory
-    public void displayInventory() {
-        System.out.println("Current Room Availability:");
-        for (Map.Entry<String, Integer> entry : inventory.entrySet()) {
-            System.out.println(entry.getKey() + " : " + entry.getValue());
+    // Calculate total add-on cost
+    public double calculateTotalCost(String reservationId) {
+        List<Service> services = serviceMap.get(reservationId);
+
+        double total = 0;
+        if (services != null) {
+            for (Service s : services) {
+                total += s.cost;
+            }
         }
+        return total;
     }
 }
 
@@ -44,20 +67,24 @@ public class bookmystayapp {
 
     public static void main(String[] args) {
 
-        System.out.println("===== Book My Stay App v3.1 =====");
+        System.out.println("===== Book My Stay App v7.0 =====");
 
-        // Initialize Inventory
-        RoomInventory inventory = new RoomInventory();
+        AddOnServiceManager manager = new AddOnServiceManager();
 
-        // Display initial inventory
-        inventory.displayInventory();
+        // Sample Reservation ID (from UC6)
+        String reservationId = "SI-1";
 
-        // Example update
-        System.out.println("\nUpdating Single Room availability...");
-        inventory.updateAvailability("Single Room", 4);
+        // Add services
+        manager.addService(reservationId, new Service("Breakfast", 200));
+        manager.addService(reservationId, new Service("WiFi", 100));
+        manager.addService(reservationId, new Service("Airport Pickup", 500));
 
-        // Display updated inventory
-        inventory.displayInventory();
+        // Display services
+        manager.displayServices(reservationId);
+
+        // Total cost
+        double total = manager.calculateTotalCost(reservationId);
+        System.out.println("\nTotal Add-On Cost: ₹" + total);
 
         System.out.println("=================================");
     }
